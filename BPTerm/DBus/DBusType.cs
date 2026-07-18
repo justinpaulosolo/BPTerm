@@ -6,5 +6,5 @@ namespace BPTerm.DBus
     public sealed record DBusArrayType(DBusType ElementType) : DBusType;
     public sealed record DBusStructType(List<DBusType> Members) : DBusType;
     public sealed record DBusDictEntryType(DBusType KeyType, DBusType ValueType) : DBusType;
-    public sealed record DBusVariantType(DBusType Type) : DBusType;
+    public sealed record DBusVariantType() : DBusType;
 }
