@@ -1,3 +1,6 @@
+## D-Bus message wire layout
+<img width="1440" height="520" alt="image" src="https://github.com/user-attachments/assets/6aeabc72-f1d7-4007-b937-a03386cabcf8" />
+
 **TODO**
 - [x] SASAL auth + hardcoded Hello()
 - [x] Design decoded-value representaion
@@ -10,6 +13,3 @@
 - [ ] Bluetooth adapter control (generic)
 - [ ] Find the actual device
 - [ ] GATT walk
-
-## D-Bus message wire layout
-<img width="1440" height="520" alt="image" src="https://github.com/user-attachments/assets/6aeabc72-f1d7-4007-b937-a03386cabcf8" />
