@@ -1,5 +1,4 @@
-﻿using System.Text;
-using BPTerm.DBus;
+﻿using BPTerm.DBus;
 class Program
 {
     static void Main(string[] args)
@@ -16,27 +15,65 @@ class Program
             "Hello",
             "org.freedesktop.DBus");
 
-        byte[] bytes = helloMessage.ToArray();
+        connection.SendRaw(helloMessage.ToArray());
 
+        byte[] helloMessageBytes = ReadOneFullMessage(connection);
+
+        PrintBytes(helloMessageBytes);
+
+        Console.WriteLine("[----------------]");
+
+        Message getManagedObjectsMessage = new Message(
+            1,
+            0,
+            2,
+            "/" ,
+            "org.freedesktop.DBus.ObjectManager",
+            "GetManagedObjects",
+            "org.bluez");
+
+        connection.SendRaw(getManagedObjectsMessage.ToArray());
+
+        byte[] objectMessageBytes = ReadOneFullMessage(connection);
+        PrintBytes(objectMessageBytes);
+
+        Console.WriteLine("[----------------]");
+
+        byte[] anotherOne = ReadOneFullMessage(connection);
+        PrintBytes(anotherOne);
+    }
+
+    public static byte[] ReadOneFullMessage(DBusConnection connection)
+    {
+        var header = connection.ReceiveExactly(12);
+
+        var headerFieldsLengthBytes = connection.ReceiveExactly(4);
+
+        uint length = BitConverter.ToUInt32(headerFieldsLengthBytes, 0);
+
+        var headerFields = connection.ReceiveExactly((int)length);
+
+        int totalSoFar = 12 + 4 + (int)length;
+        int alignedLength = (totalSoFar + 7) & ~7;
+        int pad = alignedLength - totalSoFar;
+
+        var paddingLength = connection.ReceiveExactly(pad);
+
+        uint bodyLength = BitConverter.ToUInt32(header, 4);
+
+        var body = connection.ReceiveExactly((int)bodyLength);
+
+        return header.Concat(headerFieldsLengthBytes).Concat(headerFields).Concat(paddingLength).Concat(body).ToArray();
+    }
+
+    public static void PrintBytes(byte[] bytes)
+    {
         foreach (byte b in bytes)
         {
             Console.Write(b.ToString("X2") + " ");
         }
         Console.WriteLine();
-
     }
-
-    public static void ReadOneFullMessage(DBusConnection connection)
-    {
-        var header = connection.ReceiveExactly(12);
-
-        var headerFieldsLength = connection.ReceiveExactly(4);
-
-        uint length = BitConverter.ToUInt32(headerFieldsLength, 0);
-
-        var headerFields = connection.ReceiveExactly((int)length);
-    }
-
 }
 
 
