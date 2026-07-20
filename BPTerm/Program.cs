@@ -1,24 +1,43 @@
-﻿using BPTerm.DBus;
-
-DBusConnection connection = new DBusConnection();
-connection.Connect("/run/dbus/system_bus_socket");
-
-Message helloMessage = new Message(
-    1,
-    0,
-    1,
-    "/org/freedesktop/DBus",
-    "org.freedesktop.DBus",
-    "Hello",
-    "org.freedesktop.DBus");
-
-byte[] bytes = helloMessage.ToArray();
-
-foreach (byte b in bytes)
+﻿using System.Text;
+using BPTerm.DBus;
+class Program
 {
-    Console.Write(b.ToString("X2") + " ");
+    static void Main(string[] args)
+    {
+        DBusConnection connection = new DBusConnection();
+        connection.Connect("/run/dbus/system_bus_socket");
+
+        Message helloMessage = new Message(
+            1,
+            0,
+            1,
+            "/org/freedesktop/DBus",
+            "org.freedesktop.DBus",
+            "Hello",
+            "org.freedesktop.DBus");
+
+        byte[] bytes = helloMessage.ToArray();
+
+        foreach (byte b in bytes)
+        {
+            Console.Write(b.ToString("X2") + " ");
+        }
+        Console.WriteLine();
+
+    }
+
+    public static void ReadOneFullMessage(DBusConnection connection)
+    {
+        var header = connection.ReceiveExactly(12);
+
+        var headerFieldsLength = connection.ReceiveExactly(4);
+
+        uint length = BitConverter.ToUInt32(headerFieldsLength, 0);
+
+        var headerFields = connection.ReceiveExactly((int)length);
+    }
+
 }
-Console.WriteLine();
 
 
 /*
