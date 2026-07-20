@@ -2,6 +2,11 @@ namespace BPTerm.DBus
 {
     public static class SignatureParser
     {
+        /// <summary>
+        /// Parses a DBus signature and returns the corresponding type and size.
+        /// </summary>
+        /// <param name="signature">The DBus signature to parse.</param>
+        /// <returns>A tuple containing the parsed type and its size.</returns>
         public static (DBusType, int) Parse(string signature)
         {
             if (signature[0] == 'a')
