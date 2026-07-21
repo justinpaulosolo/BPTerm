@@ -7,7 +7,7 @@
 - [x] Generic writer (`WriteByte`,`WriteUInt16/32`,`WriteString`,`WriteObjectPath`,`WriteSignature`, `Align`)
 - [x] Signature Parser (recursive descent, `"a{sv}"` -> array-of-(dic-entry-of-string-and-variant))
 - [x] Generic Reader, driven by the parsed signature
-- [ ] Call `GetManagedObjects()` decode `a{oa{sa{sv}}}`
+- [x] Call `GetManagedObjects()` decode `a{oa{sa{sv}}}`
 - [ ] Async I/O: background read loop + pending call table, distinguish METHOD_RETURN/ERROR/SIGNAL
 - [ ] `AddMatch` + signal dispatch
 - [ ] Bluetooth adapter control (generic)
