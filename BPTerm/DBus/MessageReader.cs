@@ -32,6 +32,7 @@ namespace BPTerm.DBus
                 'y' => ReadByte(),
                 'u' => ReadUInt32(),
                 's' => ReadString(),
+                'o' => ReadObjectPath(),
                 'g' => ReadSignature(),
                 _ => throw new ArgumentException("Unsupported primitive type")
             };
@@ -60,6 +61,17 @@ namespace BPTerm.DBus
             _position += length;
             _position += 1; // Skip the null terminator
             return new DBusString(Encoding.UTF8.GetString(bytes));
+        }
+
+        private DBusObjectPath ReadObjectPath()
+        {
+            Align(4);
+            int length = (int)ReadUInt32().Value;
+            var bytes = new byte[length];
+            Array.Copy(_buffer, _position, bytes, 0, length);
+            _position += length;
+            _position += 1; // Skip the null terminator
+            return new DBusObjectPath(Encoding.UTF8.GetString(bytes));
         }
 
         private DBusSignature ReadSignature()
@@ -94,6 +106,7 @@ namespace BPTerm.DBus
         {
             return type switch
             {
+                DBusArrayType a => "a" + DictSigValueHelper(a.ElementType),
                 DBusPrimitiveType p => p.Code.ToString(),
                 DBusDictEntryType d => "{" + DictSigValueHelper(d.KeyType) + DictSigValueHelper(d.ValueType) + "}",
                 DBusVariantType => "v",
