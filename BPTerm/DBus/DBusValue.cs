@@ -4,6 +4,7 @@ namespace BPTerm.DBus
 
     public sealed record DBusByte(byte Value) : DBusValue; // 'y'
     public sealed record DBusBool(bool Value) : DBusValue; // 'b'
+    public sealed record DBusInt16(short Value) : DBusValue; // 'n'
     public sealed record DBusUInt16(ushort Value) : DBusValue; // 'q'
     public sealed record DBusUInt32(uint Value) : DBusValue; // 'u'
     public sealed record DBusString(string Value) : DBusValue; // 's'

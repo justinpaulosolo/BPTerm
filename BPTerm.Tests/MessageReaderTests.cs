@@ -15,6 +15,36 @@ public class MessageReaderTests
     }
 
     [Fact]
+    public void ReadBoolean()
+    {
+        // [1, 0, 0, 0] True
+        MessageReader reader = new MessageReader(new byte[] { 0x01, 0x00, 0x00, 0x00 });
+        DBusValue result = reader.Read(new DBusPrimitiveType('b'));
+
+        Assert.Equal(new DBusBool(true), result);
+    }
+    
+    [Fact]
+    public void ReadInt16()
+    {
+        // [5, 0] True
+        MessageReader reader = new MessageReader(new byte[] { 0x05, 0x00 });
+        DBusValue result = reader.Read(new DBusPrimitiveType('n'));
+
+        Assert.Equal(new DBusInt16(5), result);
+    }
+
+    [Fact]
+    public void ReadUInt16()
+    {
+        // [5, 0] True
+        MessageReader reader = new MessageReader(new byte[] { 0x05, 0x00 });
+        DBusValue result = reader.Read(new DBusPrimitiveType('q'));
+
+        Assert.Equal(new DBusUInt16(5), result);
+    }
+
+    [Fact]
     public void ReadUInt32()
     {
         // [5, 0, 0, 0]

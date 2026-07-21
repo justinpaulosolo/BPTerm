@@ -17,9 +17,9 @@ class Program
 
         connection.SendRaw(helloMessage.ToArray());
 
-        byte[] helloMessageBytes = ReadOneFullMessage(connection);
+        var (helloFull, helloBody) = ReadOneFullMessage(connection);
 
-        PrintBytes(helloMessageBytes);
+        PrintBytes(helloFull);
 
         Console.WriteLine("[----------------]");
 
@@ -34,16 +34,28 @@ class Program
 
         connection.SendRaw(getManagedObjectsMessage.ToArray());
 
-        byte[] objectMessageBytes = ReadOneFullMessage(connection);
-        PrintBytes(objectMessageBytes);
+        var (full, body) = ReadOneFullMessage(connection);
+        PrintBytes(full);
 
         Console.WriteLine("[----------------]");
 
-        byte[] anotherOne = ReadOneFullMessage(connection);
-        PrintBytes(anotherOne);
+        var (full2, body2) = ReadOneFullMessage(connection);
+        PrintBytes(full2);
+
+        var (bodyType, _) = SignatureParser.Parse("a{oa{sa{sv}}}");
+        var bodyReader = new MessageReader(body2);
+        DBusValue decoded = bodyReader.Read(bodyType);
+
+        var array = (DBusArray)decoded;
+        Console.WriteLine($"Object count: {array.Elements.Count}");
+        foreach(var entry in array.Elements)
+        {
+            var dictEntry = (DBusDictEntry)entry;
+            Console.WriteLine((DBusObjectPath)dictEntry.Key);
+        }
     }
 
-    public static byte[] ReadOneFullMessage(DBusConnection connection)
+    public static (byte[] full, byte[] body) ReadOneFullMessage(DBusConnection connection)
     {
         var header = connection.ReceiveExactly(12);
 
@@ -63,7 +75,7 @@ class Program
 
         var body = connection.ReceiveExactly((int)bodyLength);
 
-        return header.Concat(headerFieldsLengthBytes).Concat(headerFields).Concat(paddingLength).Concat(body).ToArray();
+        return (header.Concat(headerFieldsLengthBytes).Concat(headerFields).Concat(paddingLength).Concat(body).ToArray(), body);
     }
 
     public static void PrintBytes(byte[] bytes)

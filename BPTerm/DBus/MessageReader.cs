@@ -30,6 +30,9 @@ namespace BPTerm.DBus
             return type.Code switch
             {
                 'y' => ReadByte(),
+                'b' => ReadBoolean(),
+                'n' => ReadInt16(),
+                'q' => ReadUInt16(),
                 'u' => ReadUInt32(),
                 's' => ReadString(),
                 'o' => ReadObjectPath(),
@@ -42,6 +45,30 @@ namespace BPTerm.DBus
         {
             Align(1);
             return new DBusByte(_buffer[_position++]);
+        }
+
+        private DBusBool ReadBoolean()
+        {
+            Align(4);
+            bool value = _buffer[_position++] != 0;
+            _position += 3; // Skip the remaining 3 bytes
+            return new DBusBool(value);
+        }
+
+        private DBusInt16 ReadInt16()
+        {
+            Align(2);
+            short value = BitConverter.ToInt16(_buffer, _position);
+            _position += 2;
+            return new DBusInt16(value);
+        }
+
+        private DBusUInt16 ReadUInt16()
+        {
+            Align(2);
+            ushort value = BitConverter.ToUInt16(_buffer, _position);
+            _position += 2;
+            return new DBusUInt16(value);
         }
 
         private DBusUInt32 ReadUInt32()
