@@ -8,7 +8,7 @@ public class MessageReaderTests
     [Fact]
     public void ReadByte()
     {
-        MessageReader reader = new MessageReader(new byte[] { 0x05});
+        MessageReader reader = new MessageReader(new byte[] { 0x05 });
         DBusValue result = reader.Read(new DBusPrimitiveType('y'));
 
         Assert.Equal(new DBusByte(5), result);
@@ -23,7 +23,7 @@ public class MessageReaderTests
 
         Assert.Equal(new DBusBool(true), result);
     }
-    
+
     [Fact]
     public void ReadInt16()
     {
@@ -66,7 +66,7 @@ public class MessageReaderTests
         int strLength = Encoding.UTF8.GetByteCount(str);
         byte[] strBytes = Encoding.UTF8.GetBytes(str);
         byte[] lengthBytes = BitConverter.GetBytes(strLength);
-        
+
         byte[] messageBytes = lengthBytes
         .Concat(strBytes)
         .Concat(new byte[] { 0x00 })
@@ -204,7 +204,7 @@ public class MessageReaderTests
             .Concat(keyBytes)
             .Concat(new byte[] { 0x00 })
             .ToArray();
-            
+
         int padding = (4 - (keyMessageBytes.Length % 4)) % 4;
         byte[] paddingBytes = new byte[padding];
         byte[] valueBytes = BitConverter.GetBytes(value);
@@ -221,8 +221,49 @@ public class MessageReaderTests
     }
 
     [Fact]
+    public void ReadStruct()
+    {
+        // (yv): byte code = 5, variant<u> = 1234
+        // Length
+        // [5, 1, 'u', NULL] [1234,0,0,0]
+        byte byteValue = 5;
+        string variantSignature = "u";
+        uint variantValue = 1234;
+
+        byte[] byteFieldBytes = new byte[] { byteValue };
+
+        byte signatureLength = (byte)Encoding.UTF8.GetByteCount(variantSignature);
+        byte[] signatureBytes = Encoding.UTF8.GetBytes(variantSignature);
+        byte[] signatureMessageBytes = new byte[] { signatureLength }
+            .Concat(signatureBytes)
+            .Concat(new byte[] { 0x00 })
+            .ToArray();
+
+        byte[] valueBytes = BitConverter.GetBytes(variantValue);
+
+        byte[] messageBytes = byteFieldBytes
+            .Concat(signatureMessageBytes)
+            .Concat(valueBytes)
+            .ToArray();
+
+        MessageReader reader = new MessageReader(messageBytes);
+        DBusValue result = reader.Read(new DBusStructType(new List<DBusType>
+        {
+            new DBusPrimitiveType('y'),
+            new DBusVariantType()
+        }));
+
+        Assert.Equal(new DBusStruct(new List<DBusValue>
+        {
+            new DBusByte(byteValue),
+            new DBusVariant("u", new DBusUInt32(variantValue))
+        }), result);
+    }
+
+    [Fact]
     public void ReadArrayOfDictEntryStringVariant()
     {
+        // a{su}
         // Length
         // [16, 0, 0, 0] [PAD, PAD, PAD, PAD] [1, 0, 0, 0] ["a", NULL, 1, "u"] [NULL, PAD, PAD, PAD] [7, 0, 0, 0]
         string key = "a";
@@ -236,7 +277,7 @@ public class MessageReaderTests
             .Concat(keyBytes)
             .Concat(new byte[] { 0x00 })
             .ToArray();
-        
+
         byte signatureLength = (byte)Encoding.UTF8.GetByteCount(variantSignature);
         byte[] signatureBytes = Encoding.UTF8.GetBytes(variantSignature);
         byte[] signatureMessageBytes = new byte[] { signatureLength }
@@ -312,5 +353,77 @@ public class MessageReaderTests
         DBusArray innerArray = Assert.IsType<DBusArray>(dictEntry.Value);
         Assert.Equal(new List<DBusValue> { new DBusDictEntry(new DBusString("n"), new DBusVariant("u", new DBusUInt32(42))) }, innerArray.Elements);
         Assert.Equal("{sv}", innerArray.ElementSignature);
+    }
+
+    [Fact]
+    public void ParseHeaderFields_ExtractsReplySerialAndSender()
+    {
+        // ARRAY of STRUCT of (BYTE,VARIANT)
+        // a(yv)
+        // [22, 0, 0, 0]
+        // [PAD, PAD, PAD, PAD]
+        // [5, 1, "u", NULL]
+        // [7, 0, 0, 0]
+        // [7, 1, "s", NULL]
+        // [5, 0, 0, 0]
+        // [":", "1", ".", "4"]
+        // ["2", NULL]
+
+        byte byteValue1 = 5, byteValue2 = 7;
+        string variantSignature1 = "u", variantSignature2 = "s";
+        uint variantValue1 = 7;
+        string variantValue2 = ":1.42";
+
+        byte[] byteFieldBytes1 = { byteValue1 };
+
+        byte signatureLength1 = (byte)Encoding.UTF8.GetByteCount(variantSignature1);
+        byte[] signatureBytes1 = Encoding.UTF8.GetBytes(variantSignature1);
+
+        byte[] variantSignatureBytes1 = new byte[] { signatureLength1 }
+            .Concat(signatureBytes1)
+            .Concat(new byte[] { 0x00 }) // NUL terminator
+            .ToArray();
+
+        byte[] variantValueBytes1 = BitConverter.GetBytes(variantValue1);
+
+        byte[] byteFieldBytes2 = { byteValue2 };
+
+        byte signatureLength2 = (byte)Encoding.UTF8.GetByteCount(variantSignature2);
+        byte[] signatureBytes2 = Encoding.UTF8.GetBytes(variantSignature2);
+        byte[] variantSignatureBytes2 = new byte[] { signatureLength2 }
+            .Concat(signatureBytes2)
+            .Concat(new byte[] { 0x00 }) // NUL terminator
+            .ToArray();
+
+        int variantValueLength2 = Encoding.UTF8.GetByteCount(variantValue2);
+        byte[] variantValueLengthBytes2 = BitConverter.GetBytes(variantValueLength2); 
+        byte[] variantValueBytes2 = Encoding.UTF8.GetBytes(variantValue2);
+
+        // struct itself is 8-byte aligned, but since this is the very start
+        // of the reader (offset 0), no leading padding is needed here.
+        // byteFieldBytes (1) + signatureMessageBytes (3) = 4, which is
+        // already a multiple of 4, so no padding before the UINT32 value either.
+        byte[] structBytes = byteFieldBytes1
+            .Concat(variantSignatureBytes1)
+            .Concat(variantValueBytes1)
+            .Concat(byteFieldBytes2)
+            .Concat(variantSignatureBytes2)
+            .Concat(variantValueLengthBytes2)
+            .Concat(variantValueBytes2)
+            .Concat(new byte[] { 0x00 }) // NUL terminator
+            .ToArray();
+        
+        int length = structBytes.Length; 
+        byte[] lengthBytes = BitConverter.GetBytes(length);
+        int lengthPadding = (8 - (lengthBytes.Length % 8)) % 8;
+
+        byte[] paddedStructBytes = lengthBytes
+        .Concat(new byte[lengthPadding])
+        .Concat(structBytes)
+        .ToArray();
+
+        var result = HeaderFields.Parse(paddedStructBytes);
+        Assert.Equal(new DBusUInt32(7), result[5]);
+        Assert.Equal(new DBusString(":1.42"), result[7]);
     }
 }

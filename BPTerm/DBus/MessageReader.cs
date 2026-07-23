@@ -21,6 +21,7 @@ namespace BPTerm.DBus
                 DBusArrayType a => ReadArray(a),
                 DBusVariantType => ReadVariant(),
                 DBusDictEntryType d => ReadDictEntry(d),
+                DBusStructType s => ReadStruct(s),
                 _ => throw new ArgumentException("Unsupported type")
             };
         }
@@ -136,6 +137,7 @@ namespace BPTerm.DBus
                 DBusArrayType a => "a" + DictSigValueHelper(a.ElementType),
                 DBusPrimitiveType p => p.Code.ToString(),
                 DBusDictEntryType d => "{" + DictSigValueHelper(d.KeyType) + DictSigValueHelper(d.ValueType) + "}",
+                DBusStructType s => "(" + string.Join("", s.Members.Select(DictSigValueHelper)) + ")",
                 DBusVariantType => "v",
                 _ => throw new NotSupportedException($"Type not supported: {type}")
             };
@@ -168,6 +170,17 @@ namespace BPTerm.DBus
             var key = Read(d.KeyType);
             var value = Read(d.ValueType);
             return new DBusDictEntry(key, value);
+        }
+
+        private DBusStruct ReadStruct(DBusStructType s)
+        {
+            Align(8);
+            var elements = new List<DBusValue>();
+            foreach (var fieldType in s.Members)
+            {
+                elements.Add(Read(fieldType));
+            }
+            return new DBusStruct(elements);
         }
 
         private void Align(int boundary)
